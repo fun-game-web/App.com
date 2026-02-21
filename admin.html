@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Panel - Android Monitor</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        body {
+            background: #0a0a0f;
+            color: #fff;
+            padding: 10px;
+        }
+        
+        .admin-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* Login Box */
+        .login-box {
+            max-width: 90%;
+            margin: 50px auto;
+            background: #12121a;
+            border: 2px solid #00ff88;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,255,136,0.2);
+        }
+        
+        .login-box h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #1a1a26;
+            border: 1px solid #00ff88;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .login-box button {
+            width: 100%;
+            padding: 16px;
+            background: #00ff88;
+            border: none;
+            border-radius: 12px;
+            color: #0a0a0f;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        /* Header Admin */
+        .admin-header {
+            background: #12121a;
+            border: 2px solid #00ff88;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .admin-header h1 {
+            color: #00ff88;
+            font-size: 20px;
+        }
+        
+        .admin-header button {
+            padding: 10px 18px;
+            background: #ff4444;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* Stats Cards - Baris Atas */
+        .stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .stats-row::-webkit-scrollbar {
+            height: 3px;
+        }
+        
+        .stats-row::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 10px;
+        }
+        
+        .stat-mini-card {
+            background: #12121a;
+            border: 1px solid #00ff88;
+            border-radius: 12px;
+            padding: 12px 15px;
+            min-width: 110px;
+            text-align: center;
+        }
+        
+        .stat-mini-card .label {
+            color: #88ffcc;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-mini-card .value {
+            color: #00ff88;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        /* Device Monitor Section - Terpisah */
+        .monitor-section {
+            background: #12121a;
+            border: 2px solid #00ff88;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .monitor-title {
+            color: #00ff88;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        
+        .monitor-item {
+            background: #1a1a26;
+            border-radius: 12px;
+            padding: 12px;
+            border-left: 3px solid #00ff88;
+        }
+        
+        .monitor-item .label {
+            color: #88ffcc;
+            font-size: 11px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .monitor-item .value {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            word-break: break-word;
+        }
+        
+        .monitor-item .sub-value {
+            color: #aaa;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        
+        .battery-level {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .battery-bar {
+            flex: 1;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .battery-fill {
+            height: 100%;
+            background: #00ff88;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        
+        .signal-strength {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 20px;
+        }
+        
+        .signal-bar {
+            width: 4px;
+            background: #333;
+            border-radius: 2px 2px 0 0;
+        }
+        
+        .signal-bar.active {
+            background: #00ff88;
+        }
+        
+        .bar1 { height: 6px; }
+        .bar2 { height: 10px; }
+        .bar3 { height: 14px; }
+        .bar4 { height: 18px; }
+        
+        /* Users Table - Sederhana */
+        .users-table {
+            background: #12121a;
+            border: 1px solid #00ff88;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            display: grid;
+            grid-template-columns: 30px 1fr 1fr 1.5fr;
+            background: #1a1a26;
+            padding: 12px 10px;
+            color: #00ff88;
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 2px solid #00ff88;
+        }
+        
+        .user-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 1fr 1.5fr;
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(0,255,136,0.1);
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .user-row:last-child {
+            border-bottom: none;
+        }
+        
+        .user-row.banned {
+            background: rgba(255,68,68,0.1);
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-online { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+        .status-offline { background: #666; }
+        .status-banned { background: #ff4444; }
+        
+        .username {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-rank {
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 10px;
+            background: rgba(0,255,136,0.1);
+            display: inline-block;
+        }
+        
+        .device-info-compact {
+            font-size: 10px;
+            color: #aaa;
+            line-height: 1.3;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 5px 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn-edit { background: #ffd700; color: #000; }
+        .btn-ban { background: #ff4444; color: white; }
+        .btn-unban { background: #00ff88; color: #000; }
+        .btn-delete { background: #8b0000; color: white; }
+        .btn-locate { background: #4a90e2; color: white; }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        
+        .modal.active { display: flex; }
+        
+        .modal-content {
+            background: #12121a;
+            border: 2px solid #00ff88;
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-content h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content input,
+        .modal-content select,
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #1a1a26;
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn-save { background: #00ff88; color: #000; }
+        .btn-cancel { background: #ff4444; color: white; }
+        
+        /* Location Info */
+        .location-info {
+            background: #1a1a26;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .location-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .location-label {
+            width: 80px;
+            color: #88ffcc;
+        }
+        
+        .location-value {
+            flex: 1;
+            color: white;
+        }
+        
+        .map-link {
+            color: #4a90e2;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        /* Message */
+        .message {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            z-index: 2000;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .message.success { background: #00ff88; color: #000; }
+        .message.error { background: #ff4444; }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #00ff88;
+        }
+        
+        /* Rank colors */
+        .rank-newbie{color:#cd7f32}.rank-junior{color:#c0c0c0}.rank-senior{color:#ffd700}
+        .rank-great{color:#32cd32}.rank-super-great{color:#00ff00}.rank-legend{color:#ff4500}
+        .rank-kings{color:#9370db}.rank-greatest{color:#ff00ff}.rank-mad-kings{color:#8b0000}
+        .rank-greatness{color:#00ffff}.rank-unbeatable{color:#ff8c00}.rank-monster-kings{color:#800080}
+        .rank-impossible{background:linear-gradient(135deg,#f00,#ff8c00,#ff0,#0f0,#0ff,#00f,#800080);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        
+        @media (max-width: 480px) {
+            .table-header {
+                grid-template-columns: 20px 1fr 1fr 1.8fr;
+                font-size: 11px;
+            }
+            
+            .user-row {
+                grid-template-columns: 20px 1fr 1fr 1.8fr;
+                font-size: 12px;
+                padding: 10px 5px;
+            }
+            
+            .action-btn {
+                padding: 4px 6px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Login Form -->
+        <div id="loginForm" class="login-box">
+            <h2>🔐 ADMIN ANDROID</h2>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="adminLogin()">LOGIN</button>
+            <div id="loginError" class="error"></div>
+        </div>
+        
+        <!-- Admin Panel -->
+        <div id="adminPanel" style="display:none;">
+            <div class="admin-header">
+                <h1>👑 ADMIN PANEL</h1>
+                <button onclick="adminLogout()">LOGOUT</button>
+            </div>
+            
+            <!-- Stats Baris Atas -->
+            <div class="stats-row">
+                <div class="stat-mini-card">
+                    <div class="label">TOTAL</div>
+                    <div class="value" id="totalUsers">0</div>
+                </div>
+                <div class="stat-mini-card">
+                    <div class="label">ONLINE</div>
+                    <div class="value" id="onlineUsers">0</div>
+                </div>
+                <div class="stat-mini-card">
+                    <div class="label">BANNED</div>
+                    <div class="value" id="bannedUsers">0</div>
+                </div>
+                <div class="stat-mini-card">
+                    <div class="label">ANDROID</div>
+                    <div class="value" id="androidUsers">0</div>
+                </div>
+                <div class="stat-mini-card">
+                    <div class="label">TODAY</div>
+                    <div class="value" id="todayActive">0</div>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="users-table">
+                <div class="table-header">
+                    <div>●</div>
+                    <div>USER</div>
+                    <div>RANK</div>
+                    <div>DEVICE & ACTIONS</div>
+                </div>
+                <div id="usersContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ EDIT USER</h3>
+            <input type="hidden" id="editUid">
+            <input type="text" id="editUsername" placeholder="Username">
+            <select id="editRank">
+                <option value="0">🥉 Newbie</option>
+                <option value="1">🥈 Junior</option>
+                <option value="2">🥇 Senior</option>
+                <option value="3">🏅 Great</option>
+                <option value="4">🎖️ Super Great</option>
+                <option value="5">🏆 Legend</option>
+                <option value="6">👑 Kings</option>
+                <option value="7">☢️ Greatest</option>
+                <option value="8">☣️ Mad Kings</option>
+                <option value="9">🔱 Greatness</option>
+                <option value="10">⚜️ Unbeatable</option>
+                <option value="11">🏴‍☠️ Monster Kings</option>
+                <option value="12">⚛️亗 Impossible</option>
+            </select>
+            <input type="number" id="editMoney" placeholder="Money">
+            <input type="number" id="editDiamond" placeholder="Diamond">
+            <input type="number" id="editStars" placeholder="Stars">
+            <div class="modal-buttons">
+                <button class="btn-save" onclick="saveUserEdit()">SIMPAN</button>
+                <button class="btn-cancel" onclick="closeEditModal()">BATAL</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ban Modal -->
+    <div id="banModal" class="modal">
+        <div class="modal-content">
+            <h3>🚫 BAN USER</h3>
+            <input type="hidden" id="banUid">
+            <input type="text" id="banUsername" readonly>
+            <textarea id="banReason" placeholder="Alasan ban (opsional)"></textarea>
+            <div class="modal-buttons">
+                <button class="btn-save" onclick="confirmBan()">BAN</button>
+                <button class="btn-cancel" onclick="closeBanModal()">BATAL</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Location Modal -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <h3>📍 LOKASI USER</h3>
+            <div id="locationDetails" class="location-info">
+                <div class="loading">Memuat lokasi...</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeLocationModal()">TUTUP</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const ADMIN_USERS = {
+            'Zoo': 'admin',
+            'Xhrzo': 'admin'
+        };
+        
+        let currentAdmin = null;
+        let allUsers = [];
+        
+        const ranks = [
+            '🥉 Newbie', '🥈 Junior', '🥇 Senior', '🏅 Great', '🎖️ Super Great',
+            '🏆 Legend', '👑 Kings', '☢️ Greatest', '☣️ Mad Kings', '🔱 Greatness',
+            '⚜️ Unbeatable', '🏴‍☠️ Monster Kings', '⚛️亗 Impossible'
+        ];
+        
+        function showMessage(text, type) {
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+        
+        // ==================== LOGIN ====================
+        function adminLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            
+            if(ADMIN_USERS[username] && ADMIN_USERS[username] === password) {
+                currentAdmin = username;
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadUsers();
+                startRealtimeUpdates();
+            } else {
+                document.getElementById('loginError').textContent = 'Username atau password salah!';
+            }
+        }
+        
+        function adminLogout() {
+            currentAdmin = null;
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            
+            if(window.userListener) {
+                database.ref('users').off('value', window.userListener);
+            }
+        }
+        
+        // ==================== LOAD USERS ====================
+        function loadUsers() {
+            database.ref('users').once('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    processUsers(snapshot.val());
+                }
+            });
+        }
+        
+        function startRealtimeUpdates() {
+            if(window.userListener) {
+                database.ref('users').off('value', window.userListener);
+            }
+            
+            window.userListener = database.ref('users').on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    processUsers(snapshot.val());
+                }
+            });
+        }
+        
+        function processUsers(usersData) {
+            allUsers = [];
+            
+            Object.keys(usersData).forEach(uid => {
+                const user = usersData[uid];
+                if(user && user.device) {
+                    // Hanya tampilkan Android
+                    const isAndroid = user.device.userAgent?.toLowerCase().includes('android') || 
+                                     user.device.androidVersion ||
+                                     user.device.platform?.toLowerCase().includes('android');
+                    
+                    if(isAndroid) {
+                        allUsers.push({
+                            uid: uid,
+                            ...user
+                        });
+                    }
+                } else if(user && user.username) {
+                    // User tanpa device info tetap tampil
+                    allUsers.push({
+                        uid: uid,
+                        ...user
+                    });
+                }
+            });
+            
+            updateStats();
+            renderUsers();
+        }
+        
+        function updateStats() {
+            const total = allUsers.length;
+            const online = allUsers.filter(u => u.status === 'online' && !u.banned).length;
+            const banned = allUsers.filter(u => u.banned).length;
+            const android = allUsers.filter(u => u.device?.androidVersion || u.device?.userAgent?.includes('Android')).length;
+            
+            const today = new Date().toDateString();
+            const todayActive = allUsers.filter(u => {
+                if(u.lastSeen) {
+                    return new Date(u.lastSeen).toDateString() === today;
+                }
+                return false;
+            }).length;
+            
+            document.getElementById('totalUsers').textContent = total;
+            document.getElementById('onlineUsers').textContent = online;
+            document.getElementById('bannedUsers').textContent = banned;
+            document.getElementById('androidUsers').textContent = android;
+            document.getElementById('todayActive').textContent = todayActive;
+        }
+        
+        function renderUsers() {
+            const container = document.getElementById('usersContainer');
+            
+            if(allUsers.length === 0) {
+                container.innerHTML = '<div class="loading">Tidak ada user Android</div>';
+                return;
+            }
+            
+            let html = '';
+            allUsers.forEach(user => {
+                const isBanned = user.banned ? 'banned' : '';
+                const statusClass = user.banned ? 'status-banned' : (user.status === 'online' ? 'status-online' : 'status-offline');
+                
+                // Device info compact
+                let deviceInfo = '';
+                if(user.device) {
+                    const d = user.device;
+                    deviceInfo = `<div class="device-info-compact">`;
+                    
+                    if(d.androidVersion) deviceInfo += `📱 Android ${d.androidVersion}<br>`;
+                    if(d.battery) deviceInfo += `🔋 ${d.battery.level}% ${d.battery.charging ? '⚡' : ''}<br>`;
+                    if(d.network) deviceInfo += `📶 ${d.network.type} ${d.network.signal || ''}<br>`;
+                    if(d.location) deviceInfo += `📍 ${d.location.city || 'Unknown'}<br>`;
+                    if(d.ip) deviceInfo += `🌐 ${d.ip}`;
+                    
+                    deviceInfo += `</div>`;
+                }
+                
+                const rankClass = `rank-${ranks[user.rank || 0].toLowerCase().replace(/[^a-z]/g, '')}`;
+                
+                html += `
+                    <div class="user-row ${isBanned}">
+                        <div>
+                            <span class="status-indicator ${statusClass}"></span>
+                        </div>
+                        <div class="username" title="${user.username || 'Unknown'}">
+                            ${user.username || 'Unknown'}
+                        </div>
+                        <div>
+                            <span class="user-rank ${rankClass}">${ranks[user.rank || 0]}</span>
+                        </div>
+                        <div>
+                            ${deviceInfo}
+                            <div class="action-buttons" style="margin-top:5px;">
+                                <button class="action-btn btn-edit" onclick="openEditModal('${user.uid}')">✏️</button>
+                                ${user.banned ? 
+                                    `<button class="action-btn btn-unban" onclick="unbanUser('${user.uid}')">🔓</button>` :
+                                    `<button class="action-btn btn-ban" onclick="openBanModal('${user.uid}', '${user.username}')">🚫</button>`
+                                }
+                                <button class="action-btn btn-locate" onclick="showLocation('${user.uid}')">📍</button>
+                                <button class="action-btn btn-delete" onclick="deleteUser('${user.uid}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // ==================== LOCATION ====================
+        async function showLocation(uid) {
+            const user = allUsers.find(u => u.uid === uid);
+            if(!user) return;
+            
+            document.getElementById('locationModal').classList.add('active');
+            const locationDiv = document.getElementById('locationDetails');
+            
+            if(user.device && user.device.location) {
+                const loc = user.device.location;
+                let locationHtml = `
+                    <div class="location-row">
+                        <div class="location-label">Latitude:</div>
+                        <div class="location-value">${loc.latitude || '-'}</div>
+                    </div>
+                    <div class="location-row">
+                        <div class="location-label">Longitude:</div>
+                        <div class="location-value">${loc.longitude || '-'}</div>
+                    </div>
+                `;
+                
+                if(loc.latitude && loc.longitude) {
+                    locationHtml += `
+                        <div class="location-row">
+                            <div class="location-label">Akurasi:</div>
+                            <div class="location-value">${loc.accuracy || '-'} meter</div>
+                        </div>
+                        <div class="location-row">
+                            <div class="location-label">Kota:</div>
+                            <div class="location-value">${loc.city || '-'}</div>
+                        </div>
+                        <div class="location-row">
+                            <div class="location-label">Negara:</div>
+                            <div class="location-value">${loc.country || '-'}</div>
+                        </div>
+                        <div class="location-row">
+                            <div class="location-label">Provider:</div>
+                            <div class="location-value">${loc.provider || 'GPS'}</div>
+                        </div>
+                        <div style="text-align:center; margin-top:15px;">
+                            <a href="https://maps.google.com/?q=${loc.latitude},${loc.longitude}" target="_blank" class="map-link">📍 Buka di Google Maps</a>
+                        </div>
+                    `;
+                }
+                
+                locationDiv.innerHTML = locationHtml;
+            } else {
+                locationDiv.innerHTML = '<div class="location-row">User tidak mengaktifkan lokasi</div>';
+            }
+        }
+        
+        function closeLocationModal() {
+            document.getElementById('locationModal').classList.remove('active');
+        }
+        
+        // ==================== EDIT USER ====================
+        function openEditModal(uid) {
+            const user = allUsers.find(u => u.uid === uid);
+            if(!user) return;
+            
+            document.getElementById('editUid').value = uid;
+            document.getElementById('editUsername').value = user.username || '';
+            document.getElementById('editRank').value = user.rank || 0;
+            document.getElementById('editMoney').value = user.money || 0;
+            document.getElementById('editDiamond').value = user.diamond || 0;
+            document.getElementById('editStars').value = user.stars || 0;
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+        
+        async function saveUserEdit() {
+            const uid = document.getElementById('editUid').value;
+            const data = {
+                username: document.getElementById('editUsername').value,
+                rank: parseInt(document.getElementById('editRank').value),
+                money: parseInt(document.getElementById('editMoney').value) || 0,
+                diamond: parseInt(document.getElementById('editDiamond').value) || 0,
+                stars: parseInt(document.getElementById('editStars').value) || 0
+            };
+            
+            try {
+                await database.ref('users/' + uid).update(data);
+                showMessage('User berhasil diupdate!', 'success');
+                closeEditModal();
+            } catch(e) {
+                showMessage('Error: ' + e.message, 'error');
+            }
+        }
+        
+        // ==================== BAN USER ====================
+        function openBanModal(uid, username) {
+            document.getElementById('banUid').value = uid;
+            document.getElementById('banUsername').value = username;
+            document.getElementById('banReason').value = '';
+            document.getElementById('banModal').classList.add('active');
+        }
+        
+        function closeBanModal() {
+            document.getElementById('banModal').classList.remove('active');
+        }
+        
+        async function confirmBan() {
+            const uid = document.getElementById('banUid').value;
+            const reason = document.getElementById('banReason').value;
+            
+            try {
+                await database.ref('users/' + uid).update({
+                    banned: true,
+                    banReason: reason || 'Tidak ada alasan',
+                    bannedAt: firebase.database.ServerValue.TIMESTAMP,
+                    bannedBy: currentAdmin
+                });
+                showMessage('User berhasil di BAN!', 'success');
+                closeBanModal();
+            } catch(e) {
+                showMessage('Error: ' + e.message, 'error');
+            }
+        }
+        
+        async function unbanUser(uid) {
+            if(!confirm('Yakin ingin membuka ban user ini?')) return;
+            
+            try {
+                await database.ref('users/' + uid).update({
+                    banned: false,
+                    banReason: null,
+                    bannedAt: null,
+                    bannedBy: null
+                });
+                showMessage('User berhasil diunban!', 'success');
+            } catch(e) {
+                showMessage('Error: ' + e.message, 'error');
+            }
+        }
+        
+        async function deleteUser(uid) {
+            if(!confirm('⚠️ PERINGATAN! Hapus user ini?')) return;
+            
+            try {
+                await database.ref('users/' + uid).remove();
+                await database.ref('friends/' + uid).remove();
+                showMessage('User berhasil dihapus!', 'success');
+            } catch(e) {
+                showMessage('Error: ' + e.message, 'error');
+            }
+        }
+        
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') {
+                closeEditModal();
+                closeBanModal();
+                closeLocationModal();
+            }
+        });
+    </script>
+</body>
+</html>
